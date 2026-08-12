@@ -6,7 +6,7 @@ targets:
     mode: production
     default: true
     workspace:
-      host: https://adb-7405608552083635.15.azuredatabricks.net           # <-- FILL IN
+      host: https://adb-7405608552083635.15.azuredatabricks.net          
       root_path: /Workspace/Users/siwale.kama@outlook.com/.bundle/${bundle.name}/${bundle.target}
     run_as:
       user_name: siwale.kama@outlook.com
