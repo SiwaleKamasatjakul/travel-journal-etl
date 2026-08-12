@@ -1,0 +1,28 @@
+bundle:
+  name: source-ingestion
+
+targets:
+  prod:
+    mode: production
+    default: true
+    workspace:
+      host: https://adb-7405608552083635.15.azuredatabricks.net
+
+resources:
+  jobs:
+    source_ingestion_job:
+      name: source-ingestion-${bundle.target}
+      tasks:
+        - task_key: ingest
+          notebook_task:
+            notebook_path: "./source_ingestion/Source Ingestion.ipynb"
+          job_cluster_key: ingest_cluster
+          max_retries: 2
+          min_retry_interval_millis: 60000
+      job_clusters:
+        - job_cluster_key: ingest_cluster
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2
+            num_workers: 2
+            
