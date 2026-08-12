@@ -34,3 +34,5 @@ jobs:
       - name: Run job
         run: databricks bundle run source_ingestion_job -t prod
         
+      - name: Run bronze incremental
+        run: databricks bundle run bronze_incremental_job -t prod
