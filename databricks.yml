@@ -27,9 +27,14 @@ resources:
       job_clusters:
         - job_cluster_key: shared_cluster
           new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2
-            num_workers: 2
+            spark_version: 15.4.x-scala2.12       # keep standard runtime for ETL
+            node_type_id: Standard_D4ds_v4
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: SingleNode
             data_security_mode: SINGLE_USER
 
 
