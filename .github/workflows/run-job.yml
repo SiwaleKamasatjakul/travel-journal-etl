@@ -1,4 +1,4 @@
-name: CI
+name: Run Job and ETL Pipeline
 
 on:
   push:
