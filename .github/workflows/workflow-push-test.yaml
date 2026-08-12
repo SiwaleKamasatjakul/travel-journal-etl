@@ -8,6 +8,7 @@ on:
   push:
     paths-ignore:
       - .github
+    branches:
       # Set your base branch name here
       - main
 
