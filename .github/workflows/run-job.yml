@@ -1,6 +1,8 @@
 name: Run Job and ETL Pipeline
 
 on:
+  workflow_dispatch:          # <-- adds the manual "Run workflow" button
+
   push:
     paths-ignore:
       - '.github/**'
