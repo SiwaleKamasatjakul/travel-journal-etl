@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    paths-ignore:
+      - '.github/**'
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: development
+    env:
+      DATABRICKS_HOST: ${{ secrets.DEPLOYMENT_TARGET_URL }}
+      DATABRICKS_TOKEN: ${{ secrets.DEPLOYMENT_TARGET_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: databricks/setup-cli@main
+
+      # --- these steps were missing: actually deploy + run ---
+      - name: Deploy bundle
+        run: databricks bundle deploy -t prod
+
+      - name: Run job
+        run: databricks bundle run source_ingestion_job -t prod
+        
