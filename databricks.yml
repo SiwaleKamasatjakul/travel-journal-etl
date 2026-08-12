@@ -7,9 +7,9 @@ targets:
     default: true
     workspace:
       host: https://adb-7405608552083635.15.azuredatabricks.net           # <-- FILL IN
-      root_path: /Workspace/Users/siwale.kama@outlook.com/.bundle/${bundle.name}/${bundle.target}   # <-- FILL IN (token's identity)
+      root_path: /Workspace/Users/siwale.kama@outlook.com/.bundle/${bundle.name}/${bundle.target}
     run_as:
-      user_name: siwale.kama@outlook.com                           # <-- same email
+      user_name: siwale.kama@outlook.com
 
 resources:
   jobs:
@@ -21,15 +21,15 @@ resources:
         - task_key: ingest
           notebook_task:
             notebook_path: "./source_ingestion/Source Ingestion.ipynb"
-          job_cluster_key: shared_cluster
+          job_cluster_key: single_node_cluster
           max_retries: 2
           min_retry_interval_millis: 60000
       job_clusters:
-        - job_cluster_key: shared_cluster
+        - job_cluster_key: single_node_cluster
           new_cluster:
-            spark_version: 15.4.x-scala2.12       # keep standard runtime for ETL
-            node_type_id: Standard_D4ds_v4
-            num_workers: 0
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2       # 4 cores
+            num_workers: 0                        # single node = 4 cores total
             spark_conf:
               spark.databricks.cluster.profile: singleNode
               spark.master: "local[*]"
@@ -38,17 +38,15 @@ resources:
             data_security_mode: SINGLE_USER
 
 
-    # ============ JOB 2: Bronze Incremental (2 tasks, passes a value) ============
+    # ============ JOB 2: Bronze Incremental (2 tasks) ============
     bronze_incremental_job:
       name: bronze-incremental-${bundle.target}
       tasks:
-        # Task 1 — SENDER: sets the task value
         - task_key: parameter_task
           notebook_task:
             notebook_path: "./bronze_incremental/Travel_Journal_Column_Parameter.ipynb"
-          job_cluster_key: shared_cluster
+          job_cluster_key: single_node_cluster
 
-        # Task 2 — RECEIVER: gets the value via the "table" widget
         - task_key: bronze_incremental_task
           depends_on:
             - task_key: parameter_task
@@ -56,14 +54,19 @@ resources:
             notebook_path: "./bronze_incremental/Bronze Incremental.ipynb"
             base_parameters:
               table: "{{tasks.parameter_task.values.travel_journal_table}}"
-          job_cluster_key: shared_cluster
+          job_cluster_key: single_node_cluster
           max_retries: 2
           min_retry_interval_millis: 60000
 
       job_clusters:
-        - job_cluster_key: shared_cluster
+        - job_cluster_key: single_node_cluster
           new_cluster:
             spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2
-            num_workers: 2
+            node_type_id: Standard_DS3_v2       # 4 cores
+            num_workers: 0                        # single node = 4 cores total
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: SingleNode
             data_security_mode: SINGLE_USER
