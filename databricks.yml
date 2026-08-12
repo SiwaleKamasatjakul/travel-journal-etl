@@ -6,7 +6,10 @@ targets:
     mode: production
     default: true
     workspace:
-      host: https://adb-7405608552083635.15.azuredatabricks.net
+      host: https://adb-7405608552083635.15.azuredatabricks.net          # <-- FILL IN: your real workspace URL
+      root_path: /Workspace/Users/siwale.kama@outlook.com/.bundle/${bundle.name}/${bundle.target}   # <-- FILL IN: the email your DATABRICKS_TOKEN belongs to
+    run_as:
+      user_name: siwale.kama@outlook.com                          # <-- same email as above
 
 resources:
   jobs:
@@ -25,4 +28,7 @@ resources:
             spark_version: 15.4.x-scala2.12
             node_type_id: Standard_DS3_v2
             num_workers: 2
-            
+            data_security_mode: SINGLE_USER      # needed for Unity Catalog writes
+      email_notifications:
+        on_failure:
+          - siwale.ka@monkeytech.co.th
