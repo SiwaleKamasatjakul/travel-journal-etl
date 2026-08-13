@@ -62,8 +62,8 @@ resources:
         - job_cluster_key: single_node_cluster
           new_cluster:
             spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2       # 4 cores
-            num_workers: 0                        # single node = 4 cores total
+            node_type_id: Standard_D4ds_v4      # <-- changed from DS3_v2 (proven available)
+            num_workers: 0
             spark_conf:
               spark.databricks.cluster.profile: singleNode
               spark.master: "local[*]"
