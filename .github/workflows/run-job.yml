@@ -32,7 +32,7 @@ jobs:
         run: databricks bundle deploy -t prod
 
       - name: Run job
-        run: databricks bundle run source_ingestion_job -t prod
+        run: databricks bundle run source_ingestion_job -t prod --no-wait
         
       - name: Run bronze incremental
-        run: databricks bundle run bronze_incremental_job -t prod
+        run: databricks bundle run bronze_incremental_job -t prod --no-wait
