@@ -42,11 +42,6 @@ resources:
     bronze_incremental_job:
       name: bronze-incremental-${bundle.target}
       tasks:
-        - task_key: parameter_task
-          notebook_task:
-            notebook_path: "./bronze_incremental/Travel_Journal_Column_Parameter.ipynb"
-          job_cluster_key: single_node_cluster
-
         - task_key: bronze_incremental_task
           depends_on:
             - task_key: parameter_task
