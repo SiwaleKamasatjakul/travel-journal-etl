@@ -40,28 +40,25 @@ resources:
 
     # ============ JOB 2: Bronze Incremental (2 tasks) ============
     bronze_incremental_job:
+
       name: bronze-incremental-${bundle.target}
-      tasks:
-        - task_key: bronze_incremental_task
-          depends_on:
-            - task_key: parameter_task
-          notebook_task:
-            notebook_path: "./bronze_incremental/Bronze Incremental.ipynb"
-            base_parameters:
-              table: "{{tasks.parameter_task.values.travel_journal_table}}"
-          job_cluster_key: single_node_cluster
-          max_retries: 2
-          min_retry_interval_millis: 60000
 
       job_clusters:
         - job_cluster_key: single_node_cluster
           new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_D4ds_v4      # <-- changed from DS3_v2 (proven available)
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: Standard_DS3_v2
             num_workers: 0
             spark_conf:
               spark.databricks.cluster.profile: singleNode
               spark.master: "local[*]"
             custom_tags:
               ResourceClass: SingleNode
-            data_security_mode: SINGLE_USER
+
+      tasks:
+        - task_key: bronze_incremental
+          job_cluster_key: single_node_cluster
+          max_retries: 2
+          min_retry_interval_millis: 60000
+          notebook_task:
+            notebook_path: "./bronze_incremental/Bronze Incremental.ipynb"
