@@ -94,7 +94,7 @@ resources:
     gold_dlt_pipeline:
       name: gold-dlt-${bundle.target}
       serverless: true
-      catalog: main                    # omit if you're not using Unity Catalog
+      catalog: travel_journal_catalog     # <-- was "main"
       target: gold
       libraries:
         - notebook:
