@@ -188,8 +188,11 @@ ORDER BY
     avg_rating DESC;
 ```
 
-# 🛠️ 5. ETL Pipeline: Step-by-Step Implementation
-## Architecture Overview
+## 🛠️ 5. ETL Pipeline: Step-by-Step Implementation
+
+### Architecture Overview
+
+```text
 [ Supabase PostgreSQL ]
        │
        │ (REST API / JDBC Extraction)
@@ -206,4 +209,4 @@ ORDER BY
    ├── /bronze/{table}  ──► Incremental raw ingestion + Checkpoint state
    ├── /silver/{table}  ──► Cleaned, dynamic CDC data & quality rules
    └── /gold/{table}    ──► Analytical Star Schema (Facts, Dims, Bridges)
-
+```
