@@ -122,7 +122,7 @@ resources:
         - notebook:
             path: "./gold_layer/Gold Dim Date.ipynb"
         - notebook:
-            path: "./gold_layer/Gold Fact Post Bookmarks.ipynb"
+            path: "./gold_layer/Gold Fact Post Likes and Bookmark.ipynb"
         - notebook:
             path: "./gold_layer/Gold Follow.ipynb"            
         - notebook:
