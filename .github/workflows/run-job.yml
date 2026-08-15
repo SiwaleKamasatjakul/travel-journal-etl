@@ -35,4 +35,10 @@ jobs:
         run: databricks bundle run source_ingestion_job -t prod
         
       - name: Run bronze incremental
-        run: databricks bundle run bronze_incremental_job -t prod --no-wait
+        run: databricks bundle run bronze_incremental_job -t prod 
+
+      - name: Run silver layer
+        run: databricks bundle run silver_layer_job -t prod 
+
+      - name: Run gold layer
+        run: databricks bundle run gold_dlt_pipeline -t prod 
