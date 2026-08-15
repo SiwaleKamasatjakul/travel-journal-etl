@@ -23,21 +23,9 @@ resources:
         - task_key: ingest
           notebook_task:
             notebook_path: "./source_ingestion/Source Ingestion.ipynb"
-          job_cluster_key: single_node_cluster
           max_retries: 2
           min_retry_interval_millis: 60000
-      job_clusters:
-        - job_cluster_key: single_node_cluster
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2      # <-- changed from DS3_v2 (proven available)
-            num_workers: 0
-            spark_conf:
-              spark.databricks.cluster.profile: singleNode
-              spark.master: "local[*]"
-            custom_tags:
-              ResourceClass: SingleNode
-            data_security_mode: SINGLE_USER
+
 
 
     # ============ JOB 2: Bronze Incremental (2 tasks) ============
@@ -45,21 +33,9 @@ resources:
 
       name: bronze-incremental-${bundle.target}
 
-      job_clusters:
-        - job_cluster_key: single_node_cluster
-          new_cluster:
-            spark_version: "15.4.x-scala2.12"
-            node_type_id: Standard_DS3_v2      # smallest supported here (4 cores)
-            num_workers: 0
-            spark_conf:
-              spark.databricks.cluster.profile: singleNode
-              spark.master: "local[*]"
-            custom_tags:
-              ResourceClass: SingleNode
 
       tasks:
         - task_key: bronze_incremental
-          job_cluster_key: single_node_cluster
           max_retries: 2
           min_retry_interval_millis: 60000
           notebook_task:
@@ -70,21 +46,8 @@ resources:
     silver_layer_job:
       name: silver-layer-${bundle.target}
 
-      job_clusters:
-        - job_cluster_key: single_node_cluster
-          new_cluster:
-            spark_version: "15.4.x-scala2.12"
-            node_type_id: Standard_DS3_v2      # 2 cores instead of 4
-            num_workers: 0
-            spark_conf:
-              spark.databricks.cluster.profile: singleNode
-              spark.master: "local[*]"
-            custom_tags:
-              ResourceClass: SingleNode
-
       tasks:
         - task_key: silver_google_map_address
-          job_cluster_key: single_node_cluster
           max_retries: 2
           min_retry_interval_millis: 60000
           notebook_task:
