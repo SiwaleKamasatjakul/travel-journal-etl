@@ -210,3 +210,127 @@ ORDER BY
    ├── /silver/{table}  ──► Cleaned, dynamic CDC data & quality rules
    └── /gold/{table}    ──► Analytical Star Schema (Facts, Dims, Bridges)
 ```
+
+## Step 1: Azure Infrastructure Provisioning
+
+### 1. Resource Group & Storage
+
+1. Create an **Azure Resource Group** 
+2. Create an **Azure Data Lake Storage Gen2** account (Hierarchical Namespace enabled).
+3. Create container named `lakehouse`.
+4. Create the target landing directory structure inside the container:
+    - `/raw_landing/`
+    - `/bronze/`
+    - `/silver/`
+    - `/gold/`
+
+### 2. Azure Key Vault Configuration
+
+1. Create an **Azure Key Vault** (e.g., `kv-travel-journal`).
+2. Navigate to **Secrets** and add your Supabase credentials:
+    - `supabase-url`: Your Supabase API REST URL or JDBC Connection String.
+    - `supabase-key`: Service role key / API secret.
+    - `storage-account-key`: ADLS Gen2 access key.
+
+### 3. Grant Databricks & ADF Access to Key Vault
+
+- In Key Vault **Access Policies** (or Azure RBAC), grant **Key Vault Secrets User** role to both:
+    - Azure Data Factory Managed Identity.
+    - Azure Databricks Managed Identity / Service Principal.
+
+## Step 2: Databricks Secret Scope Setup
+
+To securely reference Key Vault credentials directly in PySpark without hardcoding, link Key Vault to Databricks using an **Azure Key Vault-backed Secret Scope**:
+
+1. Open Databricks workspace and go to: `https://<databricks-instance>#secrets/createScope`.
+2. Set **Scope Name**: `supabase-scope`.
+3. Provide the **DNS Name** and **Resource ID** from your Azure Key Vault properties page.
+
+You can now call secrets in PySpark:
+```
+supabase_url = dbutils.secrets.get(scope="supabase-scope", key="supabase-url")
+supabase_key = dbutils.secrets.get(scope="supabase-scope", key="supabase-key")
+```
+## Step 3: Azure Data Factory (ADF) Configuration
+
+### 1. Create Linked Services
+
+- **Supabase Linked Service:** HTTP REST API endpoint or PostgreSQL JDBC connection using Azure Key Vault secrets.
+- **Databricks Linked Service:** Point to your Azure Databricks workspace authentication via Personal Access Token (PAT) or Azure AD Managed Identity.
+- **Azure Key Vault Linked Service:** Point to your Key Vault.
+
+### 2. ADF Orchestration Pipeline
+
+Create a pipeline using a **ForEach Activity** to iterate over your target tables dynamically.
+
+#### Pipeline Parameters
+
+- `table_list` (Array):
+
+## Step 4: Databricks Incremental Bronze Ingestion Script
+
+This PySpark script uses **Databricks Auto Loader (`cloudFiles`)** for incremental processing, schema inference, progress checkpointing, and date-based partitioning.
+
+→ source code 
+
+## Step 5: Partitioning Strategy & Incremental Engine
+
+### Why Data Partitioning?
+
+For travel post metrics (`trip_posts`, `trip_stops`), volume grows continuously over time. Partitioning by date (`year`/`month`/`day` or `created_at_date`) provides three major benefits:
+
+1. **Query Pruning:** Queries targeting specific date ranges skip scanning unrelated files, significantly reducing latency and compute costs.
+2. **File Organization:** Prevents single large directories by balancing output into structured partition directories.
+3. **Seamless Scaling:** Handles high write rates as daily travel activity scales up.
+
+### Incremental Execution Flow (`availableNow=True`)
+
+- **Schema Tracking (`schemaLocation`):** Auto Loader records column structure. If Supabase alters schema in future releases, updates are caught automatically without pipeline failures.
+- **Offset Tracking (`checkpointLocation`):** Tracks processed files. Subsequent runs skip already ingested records to prevent duplicate processing.
+- **Batch Micro-burst (`availableNow=True`):** Processes all pending micro-batches as a single batch, updating the checkpoint before gracefully shutting down cluster resources.
+
+## Step 6: ADF Trigger & Scheduling
+
+1. In Azure Data Factory, add a **Schedule Trigger** to the pipeline .
+2. Set execution frequency to **Daily at 00:00 UTC** (or hourly depending on travel update SLAs).
+
+# Step 7: Silver Layer Processing (Data Cleaning, Quality & Standardization)
+
+The Silver layer transforms raw, append-only Bronze data into clean, deduplicated Delta tables. Each table in the pipeline receives a dedicated PySpark processing notebook to handle table-specific schema validations and cleaning rules.
+
+## Silver Layer Architecture & Storage
+
+- **Storage Target:** ADLS Gen2 Delta format (`abfss://silver@databricktraveljournal.dfs.core.windows.net/<table_name>`)
+- **Governance:** Registered under **Databricks Unity Catalog** (`workspace.silver.<table_name>`)
+- **Execution Environment:** Databricks compute clusters.
+```
+[ Bronze Layer (Parquet/Delta) ]
+               │
+               ▼
+┌────────────────────────────────────────────────────────┐
+│               SILVER NOTEBOOK PIPELINE                 │
+├────────────────────────────────────────────────────────┤
+│ 1. Schema Enforcement & Data Quality Checks            │
+│    • Extract missing created_at from _rescued_data     │
+│    • Trim string whitespace                            │
+│    • Correct seeded year errors (2024 ➔ 2026)          │
+│    • Enforce Primary Key Non-Null rules               │
+├────────────────────────────────────────────────────────┤
+│ 2. Deduplication via Window Functions (QUALIFY Pattern)│
+│    • Partition by Primary Key, Order by latest date    │
+├────────────────────────────────────────────────────────┤
+│ 3. Unity Catalog Delta Target Write                   │
+│    • Write mode: Overwrite / Merge into Unity Catalog  │
+└────────────────────────────────────────────────────────┘
+               │
+               ▼
+[ Silver Layer (Unity Catalog Managed Delta Tables) ]
+```
+## Processing Steps Explained
+
+### 1. Data Quality & Cleaning
+
+- **Rescued Data Extraction:** When Auto Loader encounters unparseable or corrupted payload columns in Bronze, it pushes them into `_rescued_data`. We inspect `_rescued_data` to rescue missing `created_at` timestamps using `get_json_object`.
+- **Text Normalization:** Strip leading and trailing whitespace across text fields (`trim()`).
+- **Seeded Year Correction:** Auto-generated mock/seeded data incorrectly generated timestamps set in `2024`. We programmatically adjust these date values forward to `2026` using PySpark date manipulation functions.
+- **Non-Null Enforcement:** Reject/filter out invalid records missing core identifier keys (e.g., `id`, `user_id`, `post_id`).
