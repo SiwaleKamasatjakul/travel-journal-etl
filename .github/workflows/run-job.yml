@@ -42,3 +42,7 @@ jobs:
 
       - name: Run gold layer
         run: databricks bundle run gold_dlt_pipeline -t prod 
+        
+      - name: Run gold layer for gold_google_map_address_job
+        run: databricks bundle run gold_google_map_address_job -t prod         
+        

@@ -565,7 +565,7 @@ It connects each stop back to its parent trip post, validates the user's account
 **1. Architectural & Data Modeling Diagram**
 
 ```jsx
-											 ┌──────────────────────────────┐
+					   ┌──────────────────────────────┐
                        │           dim_user           │
                        │ (SCD2: Point-in-Time Lookup) │
                        └──────────────┬───────────────┘
