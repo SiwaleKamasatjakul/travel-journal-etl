@@ -143,5 +143,36 @@ resources:
           notebook_task:
             notebook_path: "./silver_layer/Silver_Layer_Bio.ipynb"
 
+  pipelines:
+    gold_dlt_pipeline:
+      name: gold-dlt-${bundle.target}
+      serverless: true                 # <-- see note below, this dodges your quota problem
+      catalog: main                    # Unity Catalog catalog (omit if not using UC)
+      target: gold                     # schema the gold tables land in
+      libraries:
+        - notebook:
+            path: "./gold_layer/Gold Activity Code.ipynb"
+        - notebook:
+            path: "./gold_layer/Gold Country Code.ipynb"
+        - notebook:
+            path: "./gold_layer/Gold Dim Date"
+        - notebook:
+            path: "./gold_layer/Gold Fact Post Bookmarks.ipynb"
+        - notebook:
+            path: "./gold_layer/Gold Follow.ipynb"            
+        - notebook:
+            path: "./gold_layer/Gold Google Map Address.ipynb"                      
+        - notebook:
+            path: "./gold_layer/Gold Dim User.ipynb"
+        - notebook:
+            path: "./gold_layer/Gold Trip Post.ipynb"                      
+        - notebook:
+            path: "./gold_layer/Gold Trip Stop.ipynb"
+
+
+
+
+
+
 
 
