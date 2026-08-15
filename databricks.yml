@@ -28,7 +28,7 @@ resources:
         - job_cluster_key: single_node_cluster
           new_cluster:
             spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_D4ds_v4      # <-- changed from DS3_v2 (proven available)
+            node_type_id: Standard_DS3_v2      # <-- changed from DS3_v2 (proven available)
             num_workers: 0
             spark_conf:
               spark.databricks.cluster.profile: singleNode
@@ -47,7 +47,7 @@ resources:
         - job_cluster_key: single_node_cluster
           new_cluster:
             spark_version: "15.4.x-scala2.12"
-            node_type_id: Standard_DS2_v2      # 2 cores instead of 4
+            node_type_id: Standard_DS3_v2      # smallest supported here (4 cores)
             num_workers: 0
             spark_conf:
               spark.databricks.cluster.profile: singleNode
@@ -72,7 +72,7 @@ resources:
         - job_cluster_key: single_node_cluster
           new_cluster:
             spark_version: "15.4.x-scala2.12"
-            node_type_id: Standard_DS2_v2      # 2 cores instead of 4
+            node_type_id: Standard_DS3_v2      # 2 cores instead of 4
             num_workers: 0
             spark_conf:
               spark.databricks.cluster.profile: singleNode
