@@ -190,17 +190,20 @@ ORDER BY
 
 # 🛠️ 5. ETL Pipeline: Step-by-Step Implementation
 ## Architecture Overview
-flowchart TD
-    A[Supabase PostgreSQL<br/><i>Transactional DB</i>] -->|REST API / JDBC| B[Azure Data Factory]
-    C[Azure Key Vault<br/><i>Secrets & Connection Strings</i>] <-->|Secure Auth| B
-    
-    B -->|Triggers Pipeline| D[Databricks Jobs<br/><i>PySpark + Auto Loader</i>]
-    
-    D -->|Ingest Raw Data| E[(ADLS Gen2 Storage<br/><i>Unity Catalog Governed</i>)]
-    
-    subgraph Medallion Architecture
-        E --> F[🥉 Bronze Layer<br/><i>Incremental Write + Checkpoints + Partitioning</i>]
-        F --> G[🥈 Silver Layer<br/><i>Data Cleaning, CDC & Standardization</i>]
-        G --> H[🥇 Gold Layer<br/><i>Star Schema: Dimensions, Facts & Bridges</i>]
-    end
+[ Supabase PostgreSQL ]
+       │
+       │ (REST API / JDBC Extraction)
+       ▼
+[ Azure Data Factory ] ◄────── Sync Secrets ──────► [ Azure Key Vault ]
+       │
+       │ (Triggers PySpark Processing)
+       ▼
+[ Databricks Jobs (Auto Loader) ]
+       │
+       │ (Ingests & Governs via Unity Catalog)
+       ▼
+[ ADLS Gen2 Storage ]
+   ├── /bronze/{table}  ──► Incremental raw ingestion + Checkpoint state
+   ├── /silver/{table}  ──► Cleaned, dynamic CDC data & quality rules
+   └── /gold/{table}    ──► Analytical Star Schema (Facts, Dims, Bridges)
 
