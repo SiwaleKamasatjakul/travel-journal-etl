@@ -47,7 +47,7 @@ resources:
         - job_cluster_key: single_node_cluster
           new_cluster:
             spark_version: "15.4.x-scala2.12"
-            node_type_id: Standard_DS3_v2
+            node_type_id: Standard_DS2_v2      # 2 cores instead of 4
             num_workers: 0
             spark_conf:
               spark.databricks.cluster.profile: singleNode
@@ -62,3 +62,86 @@ resources:
           min_retry_interval_millis: 60000
           notebook_task:
             notebook_path: "./bronze_incremental/Bronze Incremental.ipynb"
+
+    # ============ JOB 3: Silver Layer ============
+
+    silver_layer_job:
+      name: silver-layer-${bundle.target}
+
+      job_clusters:
+        - job_cluster_key: single_node_cluster
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: Standard_DS2_v2      # 2 cores instead of 4
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: SingleNode
+
+      tasks:
+        - task_key: silver_google_map_address
+          job_cluster_key: single_node_cluster
+          max_retries: 2
+          min_retry_interval_millis: 60000
+          notebook_task:
+            notebook_path: "./silver_layer/Silver Google map address.ipynb"
+
+        - task_key: silver_image
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver image.ipynb"
+
+        - task_key: silver_activity_tag
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver Layer Activity Tag.ipynb"
+
+        - task_key: silver_country_code
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver Layer Country Code.ipynb"
+
+        - task_key: silver_follows
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver Layer Follows.ipynb"
+
+        - task_key: silver_location_country_tag
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver Layer Location Country tag.ipynb"
+
+        - task_key: silver_post_bookmarks
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver Post Bookmarks.ipynb"
+
+        - task_key: silver_post_like
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver Post Like.ipynb"
+
+        - task_key: silver_trip_stop
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver Trip Stop.ipynb"
+
+        - task_key: silver_layer_account
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver_Layer_Accounts.ipynb"
+
+        - task_key: silver_activity_code
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver_Layer_Activity_Code.ipynb"
+
+        - task_key: silver_bio
+          job_cluster_key: single_node_cluster
+          notebook_task:
+            notebook_path: "./silver_layer/Silver_Layer_Bio.ipynb"
+
+
+
