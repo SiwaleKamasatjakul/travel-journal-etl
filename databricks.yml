@@ -35,16 +35,21 @@ resources:
           min_retry_interval_millis: 60000
           notebook_task:
             notebook_path: "./bronze_incremental/Bronze Incremental.ipynb"
-
+    
+    gold_google_map_address_job:
+      name: gold-google-map-address-${bundle.target}
+      tasks:
+        - task_key: gold_google_map_address
+          max_retries: 2
+          min_retry_interval_millis: 60000
+          notebook_task:
+            notebook_path: "./gold_layer/Gold Google Map Address.ipynb"
+            base_parameters:
+              init_load_flag: "1"          
     # ============ JOB 3: Silver Layer ============
     silver_layer_job:
       name: silver-layer-${bundle.target}
       tasks:
-        - task_key: silver_google_map_address
-          max_retries: 2
-          min_retry_interval_millis: 60000
-          notebook_task:
-            notebook_path: "./silver_layer/Silver Google map address.ipynb"
 
         - task_key: silver_image
           notebook_task:
