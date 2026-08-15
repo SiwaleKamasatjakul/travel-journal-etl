@@ -21,19 +21,14 @@ resources:
       name: source-ingestion-${bundle.target}
       tasks:
         - task_key: ingest
-          notebook_task:
-            notebook_path: "./source_ingestion/Source Ingestion.ipynb"
           max_retries: 2
           min_retry_interval_millis: 60000
+          notebook_task:
+            notebook_path: "./source_ingestion/Source Ingestion.ipynb"
 
-
-
-    # ============ JOB 2: Bronze Incremental (2 tasks) ============
+    # ============ JOB 2: Bronze Incremental ============
     bronze_incremental_job:
-
       name: bronze-incremental-${bundle.target}
-
-
       tasks:
         - task_key: bronze_incremental
           max_retries: 2
@@ -42,10 +37,8 @@ resources:
             notebook_path: "./bronze_incremental/Bronze Incremental.ipynb"
 
     # ============ JOB 3: Silver Layer ============
-
     silver_layer_job:
       name: silver-layer-${bundle.target}
-
       tasks:
         - task_key: silver_google_map_address
           max_retries: 2
@@ -54,66 +47,55 @@ resources:
             notebook_path: "./silver_layer/Silver Google map address.ipynb"
 
         - task_key: silver_image
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver image.ipynb"
 
         - task_key: silver_activity_tag
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver Layer Activity Tag.ipynb"
 
         - task_key: silver_country_code
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver Layer Country Code.ipynb"
 
         - task_key: silver_follows
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver Layer Follows.ipynb"
 
         - task_key: silver_location_country_tag
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver Layer Location Country tag.ipynb"
 
         - task_key: silver_post_bookmarks
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver Post Bookmarks.ipynb"
 
         - task_key: silver_post_like
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver Post Like.ipynb"
 
         - task_key: silver_trip_stop
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver Trip Stop.ipynb"
 
         - task_key: silver_layer_account
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver_Layer_Accounts.ipynb"
 
         - task_key: silver_activity_code
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver_Layer_Activity_Code.ipynb"
 
         - task_key: silver_bio
-          job_cluster_key: single_node_cluster
           notebook_task:
             notebook_path: "./silver_layer/Silver_Layer_Bio.ipynb"
 
   pipelines:
     gold_dlt_pipeline:
       name: gold-dlt-${bundle.target}
-      serverless: true                 # <-- see note below, this dodges your quota problem
-      catalog: main                    # Unity Catalog catalog (omit if not using UC)
-      target: gold                     # schema the gold tables land in
+      serverless: true
+      catalog: main                    # omit if you're not using Unity Catalog
+      target: gold
       libraries:
         - notebook:
             path: "./gold_layer/Gold Activity Code.ipynb"
@@ -124,13 +106,13 @@ resources:
         - notebook:
             path: "./gold_layer/Gold Fact Post Likes and Bookmark.ipynb"
         - notebook:
-            path: "./gold_layer/Gold Follow.ipynb"            
+            path: "./gold_layer/Gold Follow.ipynb"
         - notebook:
-            path: "./gold_layer/Gold Google Map Address.ipynb"                      
+            path: "./gold_layer/Gold Google Map Address.ipynb"
         - notebook:
             path: "./gold_layer/Gold Layer Dim User.ipynb"
         - notebook:
-            path: "./gold_layer/Gold Trip Post.ipynb"                      
+            path: "./gold_layer/Gold Trip Post.ipynb"
         - notebook:
             path: "./gold_layer/Gold Trip Stop.ipynb"
 
