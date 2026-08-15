@@ -334,3 +334,301 @@ The Silver layer transforms raw, append-only Bronze data into clean, deduplicate
 - **Text Normalization:** Strip leading and trailing whitespace across text fields (`trim()`).
 - **Seeded Year Correction:** Auto-generated mock/seeded data incorrectly generated timestamps set in `2024`. We programmatically adjust these date values forward to `2026` using PySpark date manipulation functions.
 - **Non-Null Enforcement:** Reject/filter out invalid records missing core identifier keys (e.g., `id`, `user_id`, `post_id`).
+
+
+## Step 8: Gold Layer — Dimensional Modeling (Star Schema & DLT Pipelines)
+
+In this phase, clean Silver tables are transformed into Gold layer **Fact and Dimension tables** using **Delta Live Tables (DLT)**.
+
+### 1. SCD Type 1 Dimensions (Activity Code & Country Code)
+
+SCD Type 1 updates record values directly in place, keeping only the current state without historical tracking. We use DLT's `dlt.apply_changes` with data quality expectations enforced using `@dlt.expect_all_or_drop`.
+
+```python
+ # Quality Expectations Rule Definitions
+activity_rules = {
+    "valid_id": "id IS NOT NULL",
+    "valid_activity_code": "activity_code IS NOT NULL",
+    "valid_sequence": "created_at IS NOT NULL"
+}
+```
+
+```jsx
+country_rules = {
+    "valid_id": "id IS NOT NULL",
+    "valid_country_code": "country_code IS NOT NULL",
+    "valid_sequence": "created_at IS NOT NULL"
+}
+```
+
+### 2. Date Dimension (`dim_date`)
+
+The Date Dimension provides a rich calendar table for travel analytics, allowing time-series aggregations (year, quarter, month, day of week, weekend flags).
+
+### 3.Dimension Modeling: User Dimension (`dim_user`)
+
+The User Dimension captures profile attributes across user accounts. To protect sensitive credentials, private attributes like `passwordhash` and `email` are dropped during transformation. Historical updates (e.g., changes to `username`, `bio_text`, or `role`) are tracked using **Slowly Changing Dimension Type 2 (SCD Type 2)**.
+
+**Processing Architecture**
+
+```jsx
+[ silver.accounts ] ──(Streaming)──┐
+[ silver.bio ]      ──(Batch Read)─┼──> [ DimUser_stage_view ] ──(SCD Type 2)──> [ dim_user ]
+[ silver.images ]   ──(Batch Read)─┘
+```
+
+1. **Validation Staging (`DimUser_stage`):** Enforces data quality contracts (`user_id` and `created_at` non-null constraints) using `@dlt.expect_all_or_drop`.
+2. **Profile Enrichment (`DimUser_stage_view`):** Joins account streaming data with `bio` and `images` tables, strips credentials, and generates a deterministic surrogate key (`DimUserKey`).
+3. **SCD Type 2 Target (`dim_user`):** Applies `dlt.apply_changes` with `stored_as_scd_type="2"` to automatically maintain valid date windows (`__start_at`, `__end_at`) and flag the active record (`__is_current`).
+
+#### Technical Highlights
+
+- **Data Governance & Privacy:** Excludes non-essential and sensitive security details (`passwordhash`, `email`, `preferences`) prior to persistent analytical storage.
+- **Surrogate Key Consistency:** Generates `DimUserKey` via `SHA-256` hashing over `user_id` and timestamp combinations to establish deterministic identifiers.
+- **Automated Change Data Capture:** Leverages Delta Live Tables `apply_changes` to handle dimensional tracking without requiring custom SQL merge and status update logic.
+
+### 4. Fact Tables: Engagement & Social Graph (`fact_post_like`, `fact_post_bookmark`)
+
+The Gold engagement and social layer converts interaction streams (likes, bookmarks) into high-performance fact tables. These tables resolve user foreign keys against the **SCD Type 2 `dim_user` dimension** using **effective date range matching (`__START_AT` and `__END_AT`)** to guarantee point-in-time state accuracy.
+
+#### Design & Data Quality Rules
+
+- **Type:** Transactional Fact (Point-in-time engagement events).
+- **Data Quality Contracts (`@dlt.expect_all_or_drop`):**
+- **Additive Metrics:** Adds a synthetic constant column `F.lit(1).alias("like_count")` (or `bookmark_count`) to enable instant `SUM()` aggregations without runtime `COUNT(*)` overhead.
+
+### **5. Fact Follows (`fact_follows`)**
+
+The `fact_follows` table captures directed relationships between users (`follower_id` → `following_id`).
+
+```jsx
+				  ┌─────────────────────────────────────────────────────────┐
+                  │                 fact_follows (Event)                    │
+                  │  follower_id = User A  │  following_id = User B         │
+                  └────────────┬────────────────────────┬───────────────────┘
+                               │                        │
+       Join 1 (Follower Role)  │                        │  Join 2 (Following Role)
+                               ▼                        ▼
+     ┌───────────────────────────────────┐    ┌───────────────────────────────────┐
+     │      dim_user (Alias: follower)   │    │     dim_user (Alias: following)   │
+     │  user_id: A                       │    │  user_id: B                       │
+     │  DimUserKey: hash_A_v2            │    │  DimUserKey: hash_B_v1            │
+     └───────────────────────────────────┘    └───────────────────────────────────┘
+```
+> **Dual-Role SCD Type 2 User Resolution**
+> 
+> 
+> Map `dim_user` twice per fact record to resolve independent historical profile snapshots (`follower_key` and `following_key`) at `created_at`, enabling decoupled point-in-time analytics for both actor and target.
+>
+
+## 6. Google Map Address Dimension (`DimGoogleAddress`)
+
+This pipeline transforms raw location data into a Gold-layer Slowly Changing Dimension Type 1 (**SCD Type 1**) table (`travel_journal_catalog.gold.DimGoogleAddress`). It uses **Delta Lake MERGE (Upsert)** semantics to apply in-place updates for existing address records and append new address entities while maintaining sequential surrogate key assignment.
+
+**Architecture & Upsert Strategy**
+
+```jsx
+													┌───────────────────────────┐
+                          │ Incoming Address Data Stream│
+                          └─────────────┬─────────────┘
+                                        │
+                                        ▼
+                          ┌───────────────────────────┐
+                          │  Max Surrogate Key Lookup │
+                          │   (spark.sql MAX Key)     │
+                          └─────────────┬─────────────┘
+                                        │
+                                        ▼
+                          ┌───────────────────────────┐
+                          │ Dynamic Key Shift & Offset│
+                          │ (monotonically_increasing)│
+                          └─────────────┬─────────────┘
+                                        │
+                                        ▼
+                       /─────────────────────────────────\
+                      < Does Target Gold Delta Table Exist? >
+                       \─────────────────────────────────/
+                                 /               \
+                          [YES] /                 \ [NO]
+                               /                   \
+                              ▼                     ▼
+               ┌─────────────────────────────┐   ┌─────────────────────────────┐
+               │   Delta MERGE (Upsert)      │   │  Initial Table Load         │
+               │ • whenMatchedUpdateAll()     │   │ • Overwrite Mode            │
+               │ • whenNotMatchedInsertAll() │   │ • Save as Delta Table       │
+               └─────────────────────────────┘   └─────────────────────────────┘
+```
+
+### 1. Create Surrogate Key
+
+To guarantee unique, incrementing surrogate keys (`DimGoogleAddressKey`) across dynamic pipeline executions, the script evaluates whether the execution is an initial bootstrap run or an incremental batch run:
+
+- **Initial Load (`init_load_flag == 1`):** Assigns a base offset of `0`.
+- **Incremental Load:** Queries the target Delta table using Spark SQL to fetch the current maximum surrogate key (`MAX(DimGoogleAddressKey)`):
+
+Incoming records are generated using `monotonically_increasing_id() + 1` combined with the fetched `max_surrogate_key` offset, ensuring no primary key collisions occur between batches.
+****
+
+### 2. Idempotent Target Persistence (SCD Type 1 MERGE)
+
+The implementation verifies target table existence via `spark.catalog.tableExists()` to decide between **Table Initialization** and **Delta MERGE (Upsert)** operations:
+
+#### A. Initial Bootstrap (Table Creation)
+
+If the Gold table does not exist, the DataFrame is saved as a managed Delta Lake table registered under Unity Catalog:
+
+#### B. Incremental Upsert (SCD Type 1 MERGE)
+
+When the target table exists, `DeltaTable.forPath()` opens the storage location and executes a Delta MERGE operation:
+
+```jsx
+dlt_obj = DeltaTable.forPath(spark, "abfss://gold@databricktraveljournal.dfs.core.windows.net/DimGoogleAddress")
+
+dlt_obj.alias("trg").merge(
+    df_final.alias("src"), 
+    "trg.DimGoogleAddressKey = src.DimGoogleAddressKey"
+) \
+.whenMatchedUpdateAll() \
+.whenNotMatchedInsertAll() \
+.execute()
+```
+
+- **`whenMatchedUpdateAll()`:** Updates changed attributes (e.g., corrected street names, updated postal codes) in place without duplicating records, preserving SCD Type 1 behavior.
+- **`whenNotMatchedInsertAll()`:** Appends newly discovered address entities into the Gold dimension table.
+
+- **SCD Type 1 Consistency:** Keeps dimension data compact by overwriting outdated attributes in place.
+- **ACID Transactions:** Delta MERGE ensures atomic operations—preventing partial writes or data corruption during failures.
+- **Unity Catalog Native:** Integrates storage directly with Unity Catalog namespaces (`travel_journal_catalog.gold`), enabling data governance and downstream BI visibility.
+
+## 7. Fact Trip Posts & Bridge Tables for Multi-Valued Attributes
+
+**Main Fact Table (`fact_trip_post`):** Holds core post metrics (1 row per trip post—e.g., total distance, overall rating).
+**Bridge Tables:** Link 1 post to multiple tags without causing duplicate rows in the main fact table:
+    ◦ `bridge_trip_post_country`: Maps 1 post → Multiple Countries
+    ◦ `bridge_trip_post_activity`: Maps 1 post → Multiple Activities
+
+**1. Architectural & Data Modeling Diagram**
+
+```jsx
+													┌───────────────────────────┐
+                          │         dim_user          │
+                          │   (User Profile Data)     │
+                          └─────────────┬─────────────┘
+                                        │
+                                        │ (1 User has Many Posts)
+                                        ▼
+                          ┌───────────────────────────┐
+                          │      fact_trip_post       │
+                          │  (1 Row Per Trip Post)    │
+                          │   • Distance, Rating      │
+                          └──────┬─────────────┬──────┘
+                                 │             │
+        (1 Post has Many         │             │        (1 Post has Many 
+         Country Tags)           │             │         Activity Tags)
+                                 ▼             ▼
+  ┌──────────────────────────────┐             ┌──────────────────────────────┐
+  │   bridge_trip_post_country   │             │   bridge_trip_post_activity  │
+  │   (Post ID <-> Country Code) │             │   (Post ID <-> Activity Code)│
+  └──────────────┬───────────────┘             └──────────────┬───────────────┘
+                 │                                            │
+                 │ (Links to Country Names)                   │ (Links to Activity Names)
+                 ▼                                            ▼
+  ┌──────────────────────────────┐             ┌──────────────────────────────┐
+  │      dim_country_code        │             │      dim_activity_code       │
+  │     (France, Italy...)       │             │    (Hiking, Scuba Diving...) │
+  └──────────────────────────────┘             └──────────────────────────────┘
+```
+
+## 2. Fact Trip Posts (`fact_trip_post`)
+
+### Design Principles & Features
+
+- **Fact Grain:** One row per published trip post.
+- **Point-in-Time Key Resolution:** Joins the streaming posts against the SCD Type 2 `dim_user` table using timestamp ranges (`created_at BETWEEN __START_AT AND __END_AT`) to preserve historical user state (e.g., profile version at the time of posting).
+- **Additive Metrics:** Captures continuous numerical attributes such as `total_distance` and `trip_rating`.
+
+**3. Bridge Tables for Multi-Valued Tagging**
+Bridge tables resolve $M:N$ relationships without creating Cartesian fan-out errors in fact aggregations. Deleted or soft-deleted tags are excluded by filtering `flag == False`.
+**A. Country Location Bridge (`bridge_trip_post_country`)**
+Connects `fact_trip_post` to `dim_country_code`. Allows a single trip post (e.g., "EuroTrip 2026") to map to multiple country codes (`FR`, `IT`, `DE`).
+
+### B. Activity Tag Bridge (`bridge_trip_post_activity`)
+
+Connects `fact_trip_post` to `dim_activity_code`. Allows a trip post to contain multiple tagged activities (`SNORKEL`, `CAMPING`, `FOOD_TOUR`).
+
+## 8.Fact Trip Stops
+
+The `fact_trip_stop` table records individual stops or itinerary waypoints made during a trip (e.g., visiting a landmark, eating at a restaurant, staying at a hotel).
+
+It connects each stop back to its parent trip post, validates the user's account history via the **SCD Type 2 `dim_user` table**, and resolves location metadata against the **Google Maps Address Dimension (`dimgoogleaddress`)**.
+
+**1. Architectural & Data Modeling Diagram**
+
+```jsx
+											 ┌──────────────────────────────┐
+                       │           dim_user           │
+                       │ (SCD2: Point-in-Time Lookup) │
+                       └──────────────┬───────────────┘
+                                      │
+                                      │ (Inner Join: Validates User)
+                                      ▼
+┌──────────────────────────────┐    ┌──────────────────────────────┐
+│        fact_trip_post        │    │        fact_trip_stop        │
+│    (Parent Trip Metadata)    ├───►│  (1 Row Per Itinerary Stop)  │
+└──────────────────────────────┘    │   • Duration, Rating, Count  │
+                                    └──────────────┬───────────────┘
+                                                   │
+                                                   │ (Left Join: Preserves Unlinked Stops)
+                                                   ▼
+                       ┌──────────────────────────────┐
+                       │      dimgoogleaddress        │
+                       │  (Location & Map Details)    │
+                       └──────────────────────────────┘
+```
+
+## Key Technical Features
+
+1. **SCD Type 2 Point-in-Time Validation (`dim_user`):**
+Uses an **inner join** against `dim_user` using timestamp boundaries (`time >= __START_AT` and `time <= __END_AT`). This ensures every stop is matched to the exact version of the user's profile active when the stop occurred.
+2. **Left Join with Fallback Key (`dimgoogleaddress`):**
+Uses a **left join** to resolve `DimGoogleAddressKey`. If a stop does not have a linked Google Maps address (`google_maps_address_id` is null or missing), the record is still preserved, and `F.coalesce()` assigns a default surrogate key of `1` (Unknown/Unlinked Location).
+3. **Additive Metrics:**
+Includes `duration_minutes`, `rating`, and a pre-calculated constant column `stop_count = 1` for fast SQL aggregations (e.g., `SUM(stop_count)`).
+
+# Step 9: GitHub Actions CI/CD Automation & Databricks Asset Bundles
+
+This step establishes an automated **CI/CD pipeline** to connect the GitHub repository directly to the Databricks Workspace. It enforces continuous integration by deploying distinct notebooks per data tier (**Source Ingestion**, **Bronze**, **Silver**, and **Gold**) and dynamically triggering jobs across environments using **Databricks Asset Bundles (DABs)** and **GitHub Actions**.
+
+**🚀 1.CI/CD Architectural Workflow**
+
+```jsx
+[ 1. Git Repository ]
+  └─ Push code to main branch
+        │
+        ▼
+[ 2. GitHub Actions CI/CD Workflow ]
+  ├─ 2.1 Checkout repository code (actions/checkout@v4)
+  ├─ 2.2 Configure Python runtime (3.10+)
+  ├─ 2.3 Install & authenticate Databricks CLI
+  ├─ 2.4 Sync Workspace Git Folder (databricks repos update)
+  └─ 2.5 Deploy Asset Bundles (databricks bundle deploy)
+        │
+        ▼
+[ 3. Databricks Execution Pipeline ]
+  ├─ Stage 1: Source Ingestion Job (Serverless)
+  ├─ Stage 2: Bronze Incremental Job (Serverless)
+  ├─ Stage 3: Silver Layer DLT Job (Serverless)
+  └─ Stage 4: Gold Layer DLT Pipeline (Star Schema: Dimensions, Facts, Bridges)
+```
+
+### 2.Infrastructure as Code: `databricks.yml`
+
+The `databricks.yml` asset bundle defines multi-task pipeline workflows and standardizes cluster configurations.
+
+### 3. GitHub Actions Workflow: `.github/workflows/deploy.yml`
+
+An automation workflow using current GitHub Action steps (migrated from deprecated commands like `set-output` to `$GITHUB_OUTPUT`).
+
+### 4. Required GitHub Environment Secrets
+Before triggering the deployment pipeline, configure these encrypted secrets in **GitHub Repository Settings → Secrets and variables →Actions**:
+
