@@ -203,7 +203,7 @@ ORDER BY
     avg_rating DESC;
 ```
 
-![alt text](avg-trip-rating.png)
+![alt text](image/avg-trip-rating.png)
 
 ## 🛠️ 5. ETL Pipeline: Step-by-Step Implementation
 
