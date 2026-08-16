@@ -77,6 +77,7 @@ ORDER BY
     total_likes DESC
 LIMIT 10;
 ```
+![alt text](image/image.png)
 
 ## 2. Top Activities Analysis
 
