@@ -113,8 +113,6 @@ resources:
         - notebook:
             path: "./gold_layer/Gold Follow.ipynb"
         - notebook:
-            path: "./gold_layer/Gold Google Map Address.ipynb"
-        - notebook:
             path: "./gold_layer/Gold Layer Dim User.ipynb"
         - notebook:
             path: "./gold_layer/Gold Trip Post.ipynb"
