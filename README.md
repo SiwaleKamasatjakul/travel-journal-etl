@@ -77,7 +77,7 @@ ORDER BY
     total_likes DESC
 LIMIT 10;
 ```
-![alt text](image/image.png)
+![alt text](image/most-like-post.png)
 
 ## 2. Top Activities Analysis
 
@@ -110,6 +110,7 @@ ORDER BY
     activity_count DESC
 LIMIT 10;
 ```
+![alt text](image/top-activity.png)
 
 ## 3. Posting Activity & Country Volume by Month
 
@@ -129,27 +130,40 @@ Tracks monthly trends in posting activity broken down by destination country.
 SQL
 
 ```
--- Monthly posting volume per country
-SELECT
-    dim_date.month,
-    country_code.country_name,
-    COUNT(*) AS country_count
-FROM travel_journal_catalog.gold.fact_trip_post trip_post
-INNER JOIN travel_journal_catalog.gold.dim_date dim_date
-    ON trip_post.post_date_id = dim_date.date_id
-INNER JOIN travel_journal_catalog.gold.bridge_trip_post_country country
-    ON trip_post.trip_post_id = country.trip_post_id
-INNER JOIN travel_journal_catalog.gold.dim_country_code country_code
-    ON country.country_code = country_code.country_code
-GROUP BY
-    dim_date.month,
-    country.country_code,
-    country_code.country_name
-ORDER BY
-    dim_date.month ASC,
-    country_code.country_name ASC;
+%sql
+WITH monthly_counts AS (
+    SELECT
+        dim_date.month,
+        country_code.country_name,
+        COUNT(*) AS country_count
+    FROM travel_journal_catalog.gold.fact_trip_post trip_post
+    INNER JOIN travel_journal_catalog.gold.dim_date dim_date
+        ON trip_post.post_date_id = dim_date.date_id
+    INNER JOIN travel_journal_catalog.gold.bridge_trip_post_country country
+        ON trip_post.trip_post_id = country.trip_post_id
+    INNER JOIN travel_journal_catalog.gold.dim_country_code country_code
+        ON country.country_code = country_code.country_code
+    GROUP BY
+        dim_date.month,
+        country_code.country_name
+),
+ranked AS (
+    SELECT
+        month,
+        country_name,
+        country_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY month
+            ORDER BY country_count DESC, country_name ASC
+        ) AS rn
+    FROM monthly_counts
+)
+SELECT month, country_name, country_count
+FROM ranked
+WHERE rn <= 3
+ORDER BY month ASC, country_count DESC, country_name ASC;
 ```
-
+![alt text](image/post-activity-country-volume-month.png)
 ## 4. Average Trip Rating Grouped by Country and Activity
 
 ### Overview
@@ -188,6 +202,8 @@ GROUP BY
 ORDER BY
     avg_rating DESC;
 ```
+
+![alt text](avg-trip-rating.png)
 
 ## 🛠️ 5. ETL Pipeline: Step-by-Step Implementation
 
@@ -633,3 +649,43 @@ An automation workflow using current GitHub Action steps (migrated from deprecat
 ### 4. Required GitHub Environment Secrets
 Before triggering the deployment pipeline, configure these encrypted secrets in **GitHub Repository Settings → Secrets and variables →Actions**:
 
+## Step 10: Operational Architecture (Monitoring, Alerting, Logging & Error Handling)
+
+This section outlines the operational framework used to monitor data processing, track pipeline failures, handle errors, and inspect execution logs across Databricks and GitHub Actions.
+
+```
+[ GitHub Actions ] ──► Deploy & CI/CD Logs
+                             │
+[ Databricks UI ]  ──► Job Runs & Task Logs (Ingestion / Bronze / Silver)
+                             │
+[ DLT Event Logs ] ──► System Metrics & Quality Expectations ( Gold)
+```
+
+### 1. Job & Execution Monitoring (Databricks Workflows)
+
+- **UI Testing & Workflow Validation:** The Databricks Workflows UI is utilized during testing and runs to monitor real-time execution status for scheduled jobs:
+    - **Source Ingestion Job**
+    - **Bronze Incremental Job**
+- **Status Tracking:** Provides visual pipeline graph execution status (Succeeded, Failed, Running, Skipped) with task-level duration metrics.
+
+**Silver Layer Operational Status**
+
+- **Current Execution Method:** Interactive/Manual notebook execution.
+- **Production Gap:** Manual triggers introduce operational risk, lack automated retry mechanisms, and limit real-time visibility into failures.
+- **Target Improvement:** Migrate notebook logic into an automated **Databricks Workflow Job** or **DLT Pipeline** integrated with the existing GitHub Actions CI/CD workflow.
+
+### 2. Delta Live Tables (DLT) Monitoring (Gold Layers)
+
+- **Pipeline Pipeline UI:** Real-time visibility into streaming processing rates, records ingested, and pipeline cluster health across:
+    - **Gold DLT Pipeline:** Star schema creation (Dimensions, Facts, and Bridge tables).
+
+### 3. Centralized Logging & Error Handling
+
+#### Databricks Execution Logs
+
+- **Task & Driver Logs:** Detailed standard output (`stdout`), standard error (`stderr`), and driver logs are preserved within each individual Databricks Job run and DLT execution history.
+
+#### CI/CD & Deployment Error Handling (GitHub Actions)
+
+- **Build & Deploy Failures:** GitHub Actions validates CLI operations during deployment steps (`databricks repos update` and `databricks bundle deploy`).
+- **Deployment Gates:** If authentication fails or asset bundle syntax checks fail, the workflow aborts immediately, keeping previous stable code deployed in production while capturing standard error logs directly in the GitHub Actions run summary.
