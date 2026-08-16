@@ -428,7 +428,7 @@ This pipeline transforms raw location data into a Gold-layer Slowly Changing Dim
 **Architecture & Upsert Strategy**
 
 ```jsx
-													┌───────────────────────────┐
+						  ┌───────────────────────────┐
                           │ Incoming Address Data Stream│
                           └─────────────┬─────────────┘
                                         │
