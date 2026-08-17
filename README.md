@@ -319,7 +319,7 @@ For travel post metrics (`trip_posts`, `trip_stops`), volume grows continuously 
 
 The Silver layer transforms raw, append-only Bronze data into clean, deduplicated Delta tables. Each table in the pipeline receives a dedicated PySpark processing notebook to handle table-specific schema validations and cleaning rules.
 
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/silver_layer
+<https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/silver_layer>
 
 ## Silver Layer Architecture & Storage
 
