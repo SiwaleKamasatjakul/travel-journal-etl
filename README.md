@@ -6,6 +6,10 @@ You can view the project at this link
 
 https://travel-journal-one-orpin.vercel.app/
 
+![alt text](image/trip_post_card.png) 
+![alt text](image/trip_post_card_2.png)
+![alt text](image/trip_post_card_3.png)
+
 ## 1. System & Architecture Overview
 
 - **Database Layer:** Managed PostgreSQL hosted on **Supabase**.
