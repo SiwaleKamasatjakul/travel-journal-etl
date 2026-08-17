@@ -236,10 +236,12 @@ ORDER BY
 2. Create an **Azure Data Lake Storage Gen2** account (Hierarchical Namespace enabled).
 3. Create container named `lakehouse`.
 4. Create the target landing directory structure inside the container:
-    - `/raw_landing/`
+    - `/travelsource/`
     - `/bronze/`
     - `/silver/`
     - `/gold/`
+![alt text](image/resource_group.png)
+![alt text](image/container.png)
 
 ### 2. Azure Key Vault Configuration
 
@@ -299,6 +301,7 @@ For travel post metrics (`trip_posts`, `trip_stops`), volume grows continuously 
 1. **Query Pruning:** Queries targeting specific date ranges skip scanning unrelated files, significantly reducing latency and compute costs.
 2. **File Organization:** Prevents single large directories by balancing output into structured partition directories.
 3. **Seamless Scaling:** Handles high write rates as daily travel activity scales up.
+![alt text](image/partition.png)
 
 ### Incremental Execution Flow (`availableNow=True`)
 
@@ -310,10 +313,13 @@ For travel post metrics (`trip_posts`, `trip_stops`), volume grows continuously 
 
 1. In Azure Data Factory, add a **Schedule Trigger** to the pipeline .
 2. Set execution frequency to **Daily at 00:00 UTC** (or hourly depending on travel update SLAs).
+![alt text](image/scheduling.png)
 
 # Step 7: Silver Layer Processing (Data Cleaning, Quality & Standardization)
 
 The Silver layer transforms raw, append-only Bronze data into clean, deduplicated Delta tables. Each table in the pipeline receives a dedicated PySpark processing notebook to handle table-specific schema validations and cleaning rules.
+
+https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/silver_layer
 
 ## Silver Layer Architecture & Storage
 

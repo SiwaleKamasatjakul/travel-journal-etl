@@ -96,29 +96,28 @@ resources:
             notebook_path: "./silver_layer/Silver_Layer_Bio.ipynb"
 
   pipelines:
-    gold_dlt_pipeline:
-      name: gold-dlt-${bundle.target}
-      serverless: true
-      catalog: travel_journal_catalog     # <-- was "main"
-      target: gold
-      libraries:
-        - notebook:
-            path: "./gold_layer/Gold Activity Code.ipynb"
-        - notebook:
-            path: "./gold_layer/Gold Country Code.ipynb"
-        - notebook:
-            path: "./gold_layer/Gold Dim Date.ipynb"
-        - notebook:
-            path: "./gold_layer/Gold Fact Post Likes and Bookmark.ipynb"
-        - notebook:
-            path: "./gold_layer/Gold Follow.ipynb"
-        - notebook:
-            path: "./gold_layer/Gold Layer Dim User.ipynb"
-        - notebook:
-            path: "./gold_layer/Gold Trip Post.ipynb"
-        - notebook:
-            path: "./gold_layer/Gold Trip Stop.ipynb"
-
+      gold_dlt_pipeline:
+        name: gold-dlt-${bundle.target}
+        serverless: true
+        catalog: travel_journal_catalog
+        target: gold
+        libraries:
+          - notebook:
+              path: "./gold_layer/Gold Activity Code.ipynb"
+          - notebook:
+              path: "./gold_layer/Gold Country Code.ipynb"
+          - notebook:
+              path: "./gold_layer/Gold Dim Date.ipynb"
+          - notebook:
+              path: "./gold_layer/Gold Fact Post Likes and Bookmark.ipynb"
+          - notebook:
+              path: "./gold_layer/Gold Follow.ipynb"
+          - notebook:
+              path: "./gold_layer/Gold Layer Dim User.ipynb"
+          - notebook:
+              path: "./gold_layer/Gold Trip Post.ipynb"
+          - notebook:
+              path: "./gold_layer/Gold Trip Stop.ipynb"
 
 
 

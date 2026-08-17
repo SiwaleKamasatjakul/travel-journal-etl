@@ -44,5 +44,5 @@ jobs:
         run: databricks bundle run gold_google_map_address_job -t prod      
 
       - name: Run gold layer
-        run: databricks bundle run gold_dlt_pipeline -t prod --full-refresh-all         
+        run: databricks bundle run gold_dlt_pipeline -t prod --full-refresh-all # rebuilds the DLT gold tables
         
