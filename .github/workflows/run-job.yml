@@ -1,8 +1,12 @@
 name: Run Job and ETL Pipeline
 
 on:
-  workflow_dispatch:          # <-- adds the manual "Run workflow" button
-
+  workflow_dispatch:                 # manual "Run workflow" button
+    inputs:
+      full_refresh:
+        description: "Full-refresh the gold DLT tables (rebuild from scratch)"
+        type: boolean
+        default: false
   push:
     paths-ignore:
       - '.github/**'
@@ -27,22 +31,31 @@ jobs:
 
       - uses: databricks/setup-cli@main
 
-      # --- these steps were missing: actually deploy + run ---
+      - name: Validate bundle
+        run: databricks bundle validate -t prod
+
       - name: Deploy bundle
         run: databricks bundle deploy -t prod
 
-      - name: Run job
+      # ---------- run the medallion layers in order ----------
+      - name: Run source ingestion
         run: databricks bundle run source_ingestion_job -t prod
-        
+
       - name: Run bronze incremental
-        run: databricks bundle run bronze_incremental_job -t prod 
+        run: databricks bundle run bronze_incremental_job -t prod
 
       - name: Run silver layer
-        run: databricks bundle run silver_layer_job -t prod 
+        run: databricks bundle run silver_layer_job -t prod
 
-      - name: Run gold layer for gold_google_map_address_job
-        run: databricks bundle run gold_google_map_address_job -t prod      
+      - name: Run gold dimension (Google Map Address)
+        run: databricks bundle run gold_google_map_address_job -t prod
 
-      - name: Run gold layer
-        run: databricks bundle run gold_dlt_pipeline -t prod --full-refresh-all # rebuilds the DLT gold tables
-        
+      - name: Run gold layer (DLT)
+        run: |
+          if [ "${{ github.event.inputs.full_refresh }}" = "true" ]; then
+            echo "Running gold with FULL REFRESH"
+            databricks bundle run gold_dlt_pipeline -t prod --full-refresh-all
+          else
+            echo "Running gold incrementally"
+            databricks bundle run gold_dlt_pipeline -t prod
+          fi
