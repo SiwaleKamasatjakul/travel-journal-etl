@@ -18,12 +18,17 @@ https://travel-journal-one-orpin.vercel.app/
   * [Step 3: Azure Data Factory (ADF) Configuration](#step-3-azure-data-factory-adf-configuration)
   * [Step 4: Databricks Incremental Bronze Ingestion Script](#step-4-databricks-incremental-bronze-ingestion-script)
   * [Step 5: Partitioning Strategy & Incremental Engine](#step-5-partitioning-strategy--incremental-engine)
-  * [Step 6: ADF Trigger & Scheduling](#step-6-adf-trigger--scheduling)
+  * [Step 6: Databrick Job Trigger & Scheduling](#step-6-databrick-job-trigger--scheduling)
   * [Step 7: Silver Layer Processing (Data Cleaning, Quality & Standardization)](#step-7-silver-layer-processing-data-cleaning-quality--standardization)
   * [Step 8: Gold Layer — Dimensional Modeling (Star Schema & DLT Pipelines)](#step-8-gold-layer--dimensional-modeling-star-schema--dlt-pipelines)
   * [Step 9: GitHub Actions CI/CD Automation & Databricks Asset Bundles](#step-9-github-actions-cicd-automation--databricks-asset-bundles)
   * [Step 10: Operational Architecture (Monitoring, Alerting, Logging & Error Handling)](#step-10-operational-architecture-monitoring-alerting-logging--error-handling)
+* [Lessons Learned](#-lessons-learned)
+* [Future Improvements](#-future-improvements)
+
 ---
+
+
 
 ## 1. System & Architecture Overview
 
@@ -333,10 +338,12 @@ For travel post metrics (`trip_posts`, `trip_stops`), volume grows continuously 
 - **Offset Tracking (`checkpointLocation`):** Tracks processed files. Subsequent runs skip already ingested records to prevent duplicate processing.
 - **Batch Micro-burst (`availableNow=True`):** Processes all pending micro-batches as a single batch, updating the checkpoint before gracefully shutting down cluster resources.
 
-## Step 6: ADF Trigger & Scheduling
+## Step 6: Databrick Job Trigger & Scheduling
 
-1. In Azure Data Factory, add a **Schedule Trigger** to the pipeline .
-2. Set execution frequency to **Daily at 00:00 UTC** (or hourly depending on travel update SLAs).
+
+1. In Databrick Job, add a **Schedule Trigger** to the pipeline .
+2. Set execution frequency to At 09:30 AM (UTC+07:00 — Asia/Bangkok)
+
 ![alt text](image/scheduling.png)
 
 ## Step 7: Silver Layer Processing (Data Cleaning, Quality & Standardization)
@@ -765,3 +772,23 @@ This section outlines the operational framework used to monitor data processing,
 
 - **Build & Deploy Failures:** GitHub Actions validates CLI operations during deployment steps (`databricks repos update` and `databricks bundle deploy`).
 - **Deployment Gates:** If authentication fails or asset bundle syntax checks fail, the workflow aborts immediately, keeping previous stable code deployed in production while capturing standard error logs directly in the GitHub Actions run summary.
+
+---
+### 🎓 Lessons Learned
+
+- **Databricks Asset Bundles (DABs) Simplification:** Automating pipeline deployments via DABs drastically reduced manual configuration errors between development and target workspace environments.
+---
+
+### 🚀 Future Improvements
+
+- **Data Quality & Validation (Silver Layer):**
+    
+    Improve data validation logic to ensure geographical correctness between tagged trip locations (e.g., verifying that generated mock data for Google Maps coordinates align accurately with the tagged country in a post).
+    
+- **CI/CD Execution & Table Refresh Strategy (Gold Layer):**
+    
+    Transition Gold layer executions from manual full-table refreshes (`overwrite`) to automated incremental loads within GitHub Actions, ensuring scalability and seamless deployments as data volume grows.
+    
+- **Environment Separation (S3 & Storage Infrastructure):**
+    
+    Decouple data storage into distinct **Dev** and **Production** S3 buckets to prevent schema conflicts, isolate test data, and support safe production deployments as the application evolves.
