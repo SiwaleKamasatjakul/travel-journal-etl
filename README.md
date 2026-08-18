@@ -39,9 +39,7 @@ https://travel-journal-one-orpin.vercel.app/
 
 The core application data structure tracks user accounts, media mappings, and user preferences:
 
-Source Code:
-
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/schema/travel_journal.sql
+📄 **Source Code:** [Database Schema (`travel_journal.sql`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/schema/travel_journal.sql)
 
 ## 3. Data Engineering & ETL Pipeline
 
