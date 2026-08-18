@@ -7,11 +7,7 @@ on:
         description: "Full-refresh the gold DLT tables (rebuild from scratch)"
         type: boolean
         default: false
-  push:
-    paths-ignore:
-      - '.github/**'
-    branches:
-      - main
+
 
 jobs:
   deploy:
