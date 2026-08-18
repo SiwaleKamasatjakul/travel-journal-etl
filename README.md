@@ -12,7 +12,8 @@ https://travel-journal-one-orpin.vercel.app/
 * [2. Relational Database Schema](#2-relational-database-schema)
 * [3. Data Engineering & ETL Pipeline](#3-data-engineering--etl-pipeline)
 * [4. Gold Layer Analytics & Data Modeling Results](#4-gold-layer-analytics--data-modeling-results)
-* [🛠️ 5. ETL Pipeline: Step-by-Step Implementation](#️-5-etl-pipeline-step-by-step-implementation)
+* [5. Pipeline Performance & Benchmark Results](#5-pipeline-performance--benchmark-results)
+* [🛠️ 6. ETL Pipeline: Step-by-Step Implementation](#️-6-etl-pipeline-step-by-step-implementation)
   * [Step 1: Azure Infrastructure Provisioning](#step-1-azure-infrastructure-provisioning)
   * [Step 2: Databricks Secret Scope Setup](#step-2-databricks-secret-scope-setup)
   * [Step 3: Azure Data Factory (ADF) Configuration](#step-3-azure-data-factory-adf-configuration)
@@ -234,7 +235,29 @@ ORDER BY
 
 ![alt text](image/avg-trip-rating.png)
 
-## 🛠️ 5. ETL Pipeline: Step-by-Step Implementation
+
+## 5. 📊 Pipeline Performance & Benchmark Results
+
+### Execution Speed & Optimization Highlights
+
+By transitioning from manual UI job triggers to automated **GitHub Actions CI/CD workflows** and optimizing execution compute, overall pipeline runtimes were drastically reduced across all data layers:
+
+* **Overall End-to-End Pipeline Runtime:** Transformed **4,000+ transactional PostgreSQL records** into a Gold layer Star Schema (consisting of 2 Fact, 4 Dimension, and 2 Bridge tables) in **under 5 minutes**.
+* **Source Data Ingestion:** Reduced ingestion execution time from **8:00 minutes down to 1:17 minutes** (**~84% reduction in processing time**).
+* **Bronze Incremental Layer Processing:** Accelerated raw ingestion and state checkpointing from **11:15 minutes down to 1:49 minutes** (**~83.8% reduction in execution overhead**).
+
+---
+
+### 📈 Metrics Summary Table
+
+| Pipeline Stage | Initial Runtime (Manual / UI) | Automated Runtime (GitHub Actions) | Performance Gain |
+| :--- | :--- | :--- | :--- |
+| **Source Ingestion** | 8 min 00 sec | **1 min 17 sec** | ⚡ **83.9% faster** |
+| **Bronze Incremental Layer** | 11 min 15 sec | **1 min 49 sec** | ⚡ **83.8% faster** |
+| **Full End-to-End Pipeline** | ~20+ min | **< 5 min** | ⚡ **~75%+ total time saved** |
+
+
+## 🛠️ 6. ETL Pipeline: Step-by-Step Implementation
 
 ### Architecture Overview
 
@@ -719,6 +742,7 @@ The `databricks.yml` asset bundle defines multi-task pipeline workflows and stan
 ### 3. GitHub Actions Workflow: `.github/workflows/deploy.yml`
 
 An automation workflow using current GitHub Action steps (migrated from deprecated commands like `set-output` to `$GITHUB_OUTPUT`).
+![alt text](image/github-action.png)
 
 ### 4. Required GitHub Environment Secrets
 Before triggering the deployment pipeline, configure these encrypted secrets in **GitHub Repository Settings → Secrets and variables →Actions**:
