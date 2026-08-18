@@ -236,7 +236,7 @@ ORDER BY
 ![alt text](image/avg-trip-rating.png)
 
 
-## 5. 📊 Pipeline Performance & Benchmark Results
+## 5. Pipeline Performance & Benchmark Results
 
 ### Execution Speed & Optimization Highlights
 
