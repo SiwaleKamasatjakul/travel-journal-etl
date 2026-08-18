@@ -6,9 +6,15 @@ You can view the project at this link
 
 https://travel-journal-one-orpin.vercel.app/
 
-![alt text](image/trip_post_card.png) 
-![alt text](image/trip_post_card_2.png)
-![alt text](image/trip_post_card_3.png)
+## 📌 Table of Contents
+* [1. Architecture Overview](#1-system--architecture-overview)
+* [2. Tech Stack](#2-tech-stack)
+* [3. Data Pipeline & Medallion Architecture](#3-data-pipeline--medallion-architecture)
+* [4. Data Modeling & Star Schema](#4-data-modeling--star-schema)
+* [5. Step-by-Step Setup Guide](#5-step-by-step-setup-guide)
+* [6. CI/CD Deployment](#6-cicd-deployment)
+
+---
 
 ## 1. System & Architecture Overview
 
