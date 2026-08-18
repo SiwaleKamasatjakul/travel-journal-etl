@@ -7,13 +7,22 @@ You can view the project at this link
 https://travel-journal-one-orpin.vercel.app/
 
 ## 📌 Table of Contents
-* [1. Architecture Overview](#1-system--architecture-overview)
-* [2. Tech Stack](#2-tech-stack)
-* [3. Data Pipeline & Medallion Architecture](#3-data-pipeline--medallion-architecture)
-* [4. Data Modeling & Star Schema](#4-data-modeling--star-schema)
-* [5. Step-by-Step Setup Guide](#5-step-by-step-setup-guide)
-* [6. CI/CD Deployment](#6-cicd-deployment)
 
+* [1. System & Architecture Overview](#1-system--architecture-overview)
+* [2. Relational Database Schema](#2-relational-database-schema)
+* [3. Data Engineering & ETL Pipeline](#3-data-engineering--etl-pipeline)
+* [4. Gold Layer Analytics & Data Modeling Results](#4-gold-layer-analytics--data-modeling-results)
+* [🛠️ 5. ETL Pipeline: Step-by-Step Implementation](#️-5-etl-pipeline-step-by-step-implementation)
+  * [Step 1: Azure Infrastructure Provisioning](#step-1-azure-infrastructure-provisioning)
+  * [Step 2: Databricks Secret Scope Setup](#step-2-databricks-secret-scope-setup)
+  * [Step 3: Azure Data Factory (ADF) Configuration](#step-3-azure-data-factory-adf-configuration)
+  * [Step 4: Databricks Incremental Bronze Ingestion Script](#step-4-databricks-incremental-bronze-ingestion-script)
+  * [Step 5: Partitioning Strategy & Incremental Engine](#step-5-partitioning-strategy--incremental-engine)
+  * [Step 6: ADF Trigger & Scheduling](#step-6-adf-trigger--scheduling)
+  * [Step 7: Silver Layer Processing (Data Cleaning, Quality & Standardization)](#step-7-silver-layer-processing-data-cleaning-quality--standardization)
+  * [Step 8: Gold Layer — Dimensional Modeling (Star Schema & DLT Pipelines)](#step-8-gold-layer--dimensional-modeling-star-schema--dlt-pipelines)
+  * [Step 9: GitHub Actions CI/CD Automation & Databricks Asset Bundles](#step-9-github-actions-cicd-automation--databricks-asset-bundles)
+  * [Step 10: Operational Architecture (Monitoring, Alerting, Logging & Error Handling)](#step-10-operational-architecture-monitoring-alerting-logging--error-handling)
 ---
 
 ## 1. System & Architecture Overview
@@ -182,6 +191,7 @@ WHERE rn <= 3
 ORDER BY month ASC, country_count DESC, country_name ASC;
 ```
 ![alt text](image/post-activity-country-volume-month.png)
+
 ## 4. Average Trip Rating Grouped by Country and Activity
 
 ### Overview
