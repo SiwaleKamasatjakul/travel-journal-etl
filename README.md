@@ -48,9 +48,7 @@ The core application data structure tracks user accounts, media mappings, and us
 - **Data Origin:** Ingested from the Supabase application backend via secure REST APIs.
 - **Movement Pattern:** Batch ingestion scheduled and executed on **Databricks**.
 
-Source Code:
-
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/source_ingestion/Source%20Ingestion.ipynb
+📄 **Source Code:** [Source Ingestion Notebook (`Source Ingestion.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/source_ingestion/Source%20Ingestion.ipynb)
 
 ### Data Modeling & Storage
 
@@ -316,9 +314,7 @@ Create a pipeline using a **ForEach Activity** to iterate over your target table
 
 This PySpark script uses **Databricks Auto Loader (`cloudFiles`)** for incremental processing, schema inference, progress checkpointing, and date-based partitioning.
 
-Source Code:
-
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/bronze_incremental
+📄 **Source Code:** [Bronze Incremental Directory (`bronze_incremental`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/bronze_incremental)
 
 ## Step 5: Partitioning Strategy & Incremental Engine
 
@@ -347,9 +343,7 @@ For travel post metrics (`trip_posts`, `trip_stops`), volume grows continuously 
 
 The Silver layer transforms raw, append-only Bronze data into clean, deduplicated Delta tables. Each table in the pipeline receives a dedicated PySpark processing notebook to handle table-specific schema validations and cleaning rules.
 
-Source Code:
-
-<https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/silver_layer>
+📄 **Source Code:** [Silver Layer Directory (`silver_layer`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/silver_layer)
 
 ### Silver Layer Architecture & Storage
 
@@ -393,17 +387,13 @@ Source Code:
 
 In this phase, clean Silver tables are transformed into Gold layer **Fact and Dimension tables** using **Delta Live Tables (DLT)**.
 
-Source Code:
-
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/gold_layer
+📄 **Source Code:** [Gold Layer Directory (`gold_layer`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/tree/main/gold_layer)
 
 ### 1. SCD Type 1 Dimensions (Activity Code & Country Code)
 
 SCD Type 1 updates record values directly in place, keeping only the current state without historical tracking. We use DLT's `dlt.apply_changes` with data quality expectations enforced using `@dlt.expect_all_or_drop`.
 
-Source Code:
-
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Activity%20Code.ipynb
+📄 **Source Code:** [Gold Activity Code Notebook (`Gold Activity Code.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Activity%20Code.ipynb)
 
 
 ```python
@@ -428,9 +418,8 @@ country_rules = {
 
 The Date Dimension provides a rich calendar table for travel analytics, allowing time-series aggregations (year, quarter, month, day of week, weekend flags).
 
-Source Code:
+📄 **Source Code:** [Gold Dim Date Notebook (`Gold Dim Date.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Dim%20Date.ipynb)
 
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Dim%20Date.ipynb
 
 ![alt text](image/gold_dim_date.png)
 
@@ -438,9 +427,8 @@ https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Go
 
 The User Dimension captures profile attributes across user accounts. To protect sensitive credentials, private attributes like `passwordhash` and `email` are dropped during transformation. Historical updates (e.g., changes to `username`, `bio_text`, or `role`) are tracked using **Slowly Changing Dimension Type 2 (SCD Type 2)**.
 
-Source Code:
+📄 **Source Code:** [Gold Dim User Notebook (`Gold Layer Dim User.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Layer%20Dim%20User.ipynb)
 
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Layer%20Dim%20User.ipynb
 
 **Processing Architecture**
 
@@ -465,9 +453,7 @@ https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Go
 
 The Gold engagement and social layer converts interaction streams (likes, bookmarks) into high-performance fact tables. These tables resolve user foreign keys against the **SCD Type 2 `dim_user` dimension** using **effective date range matching (`__START_AT` and `__END_AT`)** to guarantee point-in-time state accuracy.
 
-Source Code:
-
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Fact%20Post%20Likes%20and%20Bookmark.ipynb
+📄 **Source Code:** [Gold Fact Post Likes and Bookmark Notebook (`Gold Fact Post Likes and Bookmark.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Fact%20Post%20Likes%20and%20Bookmark.ipynb)
 
 
 ![alt text](image/gold_user_fact.png)
@@ -482,9 +468,8 @@ https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Go
 
 The `fact_follows` table captures directed relationships between users (`follower_id` → `following_id`).
 
-Source Code:
+📄 **Source Code:** [Gold Follow Notebook (`Gold Follow.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Follow.ipynb)
 
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Follow.ipynb
 
 ```jsx
 				  ┌─────────────────────────────────────────────────────────┐
@@ -511,9 +496,8 @@ https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Go
 
 This pipeline transforms raw location data into a Gold-layer Slowly Changing Dimension Type 1 (**SCD Type 1**) table (`travel_journal_catalog.gold.DimGoogleAddress`). It uses **Delta Lake MERGE (Upsert)** semantics to apply in-place updates for existing address records and append new address entities while maintaining sequential surrogate key assignment.
 
-Source Code:
+📄 **Source Code:** [Gold Google Map Address Notebook (`Gold Google Map Address.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Google%20Map%20Address.ipynb)
 
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Google%20Map%20Address.ipynb
 
 **Architecture & Upsert Strategy**
 
@@ -597,9 +581,7 @@ dlt_obj.alias("trg").merge(
     ◦ `bridge_trip_post_country`: Maps 1 post → Multiple Countries
     ◦ `bridge_trip_post_activity`: Maps 1 post → Multiple Activities
 
-Source Code:
-
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Trip%20Post.ipynb
+📄 **Source Code:** [Gold Trip Post Notebook (`Gold Trip Post.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Trip%20Post.ipynb)
 
 
 **1. Architectural & Data Modeling Diagram**
@@ -658,9 +640,8 @@ The `fact_trip_stop` table records individual stops or itinerary waypoints made 
 
 It connects each stop back to its parent trip post, validates the user's account history via the **SCD Type 2 `dim_user` table**, and resolves location metadata against the **Google Maps Address Dimension (`dimgoogleaddress`)**.
 
-Source Code:
+📄 **Source Code:** [Gold Trip Stop Notebook (`Gold Trip Stop.ipynb`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Trip%20Stop.ipynb)
 
-https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/gold_layer/Gold%20Trip%20Stop.ipynb
 
 **1. Architectural & Data Modeling Diagram**
 
@@ -726,6 +707,7 @@ This step establishes an automated **CI/CD pipeline** to connect the GitHub repo
 ### 2.Infrastructure as Code: `databricks.yml`
 
 The `databricks.yml` asset bundle defines multi-task pipeline workflows and standardizes cluster configurations.
+📄 **Source Code:** [Databricks Asset Bundle (`databricks.yml`)](https://github.com/SiwaleKamasatjakul/travel-journal-etl/blob/main/databricks.yml)
 
 ### 3. GitHub Actions Workflow: `.github/workflows/deploy.yml`
 
