@@ -6,7 +6,8 @@ You can view the project at this link
 
 https://travel-journal-one-orpin.vercel.app/
 
-[Watch Demo Video](image/demo-travel-journal.mov)
+![Demo Travel Journal](image/demo-travel-journal.gif)
+
 ## 📌 Table of Contents
 
 * [1. System & Architecture Overview](#1-system--architecture-overview)
