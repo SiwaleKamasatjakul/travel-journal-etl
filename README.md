@@ -6,7 +6,11 @@ You can view the project at this link
 
 https://travel-journal-one-orpin.vercel.app/
 
-![Demo Travel Journal](image/demo-travel-journal.gif)
+<img width="530" height="774" alt="image" src="https://github.com/user-attachments/assets/940e96fa-2593-4e71-ba5b-f37a394abf89" />
+<img width="546" height="765" alt="image" src="https://github.com/user-attachments/assets/54e5f44b-4eac-4d51-b202-d1180d79ba24" />
+<img width="546" height="765" alt="image" src="https://github.com/user-attachments/assets/6d55d06f-681a-4043-967f-ce4cd60cd39c" />
+
+
 
 ## 📌 Table of Contents
 
